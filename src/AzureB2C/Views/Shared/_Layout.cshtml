@@ -1,0 +1,38 @@
+﻿@using System.Security.Principal
+<!DOCTYPE html>
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>@ViewBag.Title</title>
+        <link rel="stylesheet" href="//ajax.aspnetcdn.com/ajax/bootstrap/3.0.0/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="~/css/site.css" />
+    </head>
+    <body>
+        <div class="navbar navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-collapse collapse">
+                    <ul class="nav navbar-nav">
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/Home/UserAuthorized">User Authorized Page</a></li>
+                        <li><a href="/Home/AdministratorAuthorized">Administrator Authorized Page</a></li>
+                    </ul>
+                    @if(User.Identity.IsAuthenticated) {
+                    <ul class="nav navbar-nav navbar-right">
+                        <li><a href="/Account/LogOut">Log Out</a></li>
+                        <li><a href="/Account/Edit">Account</a></li>
+                    </ul>
+                    } else {
+                    <ul class="nav navbar-nav navbar-right">
+                        <li><a href="/Account/LogIn">Log In</a></li>
+                        <li><a href="/Account/Signup">Sign Up</a></li>
+                    </ul>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="container body-content">
+            @RenderBody()
+        </div>
+    </body>
+</html>
