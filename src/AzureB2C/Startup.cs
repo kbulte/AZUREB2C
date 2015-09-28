@@ -81,7 +81,7 @@ namespace AzureB2C
                                 context.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
                             {
                                 context.HandleResponse();
-                                context.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}& redirect_uri={RedirectUrl}");
+                                context.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}&redirect_uri={RedirectUrl}");
                             }
                             else if (context.HttpContext.User.Identity.IsAuthenticated &&
                                 context.ProtocolMessage.RequestType != OpenIdConnectRequestType.LogoutRequest)
