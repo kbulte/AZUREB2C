@@ -77,17 +77,18 @@ namespace AzureB2C
                     options.Notifications = new OpenIdConnectAuthenticationNotifications {
                         RedirectToIdentityProvider = (context) =>
                         {
-                            if (context.HttpContext.User.Identity.IsAuthenticated &&
-                                context.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
+                            if (context.HttpContext.User.Identity.IsAuthenticated)
                             {
-                                context.HandleResponse();
-                                context.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}&redirect_uri={RedirectUrl}");
-                            }
-                            else if (context.HttpContext.User.Identity.IsAuthenticated &&
-                                context.ProtocolMessage.RequestType != OpenIdConnectRequestType.LogoutRequest)
-                            {
-                                context.HandleResponse();
-                                context.HttpContext.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=You are not authorized to access the requested resource."));
+                                if (context.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
+                                {
+                                    context.HandleResponse();
+                                    context.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}&redirect_uri={RedirectUrl}");
+                                }
+                                else
+                                {
+                                    context.HandleResponse();
+                                    context.HttpContext.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=You are not authorized to access the requested resource."));
+                                }
                             }
                             return Task.FromResult(0);
                         },
