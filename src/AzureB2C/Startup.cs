@@ -4,9 +4,11 @@ using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
 using Microsoft.AspNet.Authentication.OpenIdConnect;
 using Microsoft.Framework.DependencyInjection;
-using Microsoft.Framework.Configuration;
 using AzureB2C.Policies;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNet.Authentication.Cookies;
 
 namespace AzureB2C
 {
@@ -37,74 +39,74 @@ namespace AzureB2C
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            Tenant = "XXXXXXXXXXXX.onmicrosoft.com";
-            ClientId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
-            AppKey = "XXXXXXXXXXX";
+            Tenant = "******.onmicrosoft.com";
+            ClientId = "";
+            AppKey = "";
             // These are the names I used in the portal for the policies
-            SignUpPolicyId = "B2C_1_SignupPolicy";
-            SignInPolicyId = "B2C_1_SigninPolicy";
-            ProfilePolicyId = "B2C_1_EditProfilePolicy";
+            SignUpPolicyId = "B2C_1_Sign_Up";
+            SignInPolicyId = "B2C_1_Sign_In";
+            ProfilePolicyId = "B2C_1_Edit";
             // Set to localhost at port 44301: Change to whereever you need AAD B2C to send them after auth, but url encode the string
-            RedirectUrl = "https%3a%2f%2flocalhost%3a44301%2f";
+            RedirectUrl = "https%3a%2f%2flocalhost%3a5000%2f";
             if (env.IsDevelopment())
             {
-                app.UseErrorPage();
+                app.UseDeveloperExceptionPage();
             }
             else
             {
-                app.UseErrorHandler("/Home/Error");
+                app.UseExceptionHandler("/Home/Error");
             }
             app.UseStaticFiles();
-            app.UseCookieAuthentication(options => 
+            app.UseCookieAuthentication(options =>
                 {
-                    options.AutomaticAuthentication = true;
+                    options.AutomaticAuthenticate = true;
+                    options.AutomaticChallenge = true;
                 }
             );
-            app.UseOpenIdConnectAuthentication(options => 
+            app.UseOpenIdConnectAuthentication(options =>
                 {
                     options.ClientId = ClientId;
                     options.Authority = $"https://login.microsoftonline.com/{Tenant}/v2.0/.well-known/openid-configuration";
-                    options.Scope = "openid";
                     options.ResponseType = "id_token";
                     options.ConfigurationManager = new PolicyConfigurationManager(options.Authority, new string[] { SignUpPolicyId, SignInPolicyId, ProfilePolicyId });
-                    options.AutomaticAuthentication = true;
+                    options.AutomaticAuthenticate = true;
+                    options.SignInScheme = "Cookies";
 
                     // ***********************************************************************************
                     // ****** TODO: Remove this when nonce can be produced in a normal ChallengeResponse *
                     options.ProtocolValidator.RequireNonce = false;
                     // ***********************************************************************************
-
-                    options.Notifications = new OpenIdConnectAuthenticationNotifications {
-                        RedirectToIdentityProvider = (context) =>
-                        {
-                            if (context.HttpContext.User.Identity.IsAuthenticated)
-                            {
-                                if (context.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
-                                {
-                                    context.HandleResponse();
-                                    context.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}&redirect_uri={RedirectUrl}");
-                                }
-                                else
-                                {
-                                    context.HandleResponse();
-                                    context.HttpContext.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=You are not authorized to access the requested resource."));
-                                }
-                            }
-                            return Task.FromResult(0);
-                        },
-                        AuthenticationFailed = (context) => {
-                            context.HandleResponse();
-                            if (context.ProtocolMessage.Error != null)
-                            {
-                                context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: " + System.Uri.EscapeUriString(context.ProtocolMessage.Error.ToString())));
-                            }
-                            else
-                            {
-                                context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: An unknown error occurred and the authentication failed. Please contact the IT Department."));
-                            }
-                            return Task.FromResult(0);
-                        },
-                    };
+                    //options.Notification = new OpenIdConnectNotifications {
+                    //    RedirectToIdentityProvider = (context) =>
+                    //    {
+                    //        if (context.HttpContext.User.Identity.IsAuthenticated)
+                    //        {
+                    //            if (context.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
+                    //            {
+                    //                context.HandleResponse();
+                    //                context.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}&redirect_uri={RedirectUrl}");
+                    //            }
+                    //            else
+                    //            {
+                    //                context.HandleResponse();
+                    //                context.HttpContext.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=You are not authorized to access the requested resource."));
+                    //            }
+                    //        }
+                    //        return Task.FromResult(0);
+                    //    },
+                    //    AuthenticationFailed = (context) => {
+                    //        context.HandleResponse();
+                    //        if (context.ProtocolMessage.Error != null)
+                    //        {
+                    //            context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: " + System.Uri.EscapeUriString(context.ProtocolMessage.Error.ToString())));
+                    //        }
+                    //        else
+                    //        {
+                    //            context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: An unknown error occurred and the authentication failed. Please contact the IT Department."));
+                    //        }
+                    //        return Task.FromResult(0);
+                    //    },
+                    //};
                 }
             );
             app.UseMvcWithDefaultRoute();

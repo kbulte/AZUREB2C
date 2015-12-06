@@ -9,9 +9,9 @@ namespace AzureB2C.Controllers
     {
         // GET: /Account/Login
         [HttpGet]
-        public void LogIn(OpenIdConnectAuthenticationOptions openIdConnectOptions)
+        public void LogIn(OpenIdConnectOptions openIdConnectOptions)
         {
-            if (Context.User == null || !Context.User.Identity.IsAuthenticated)
+            if (HttpContext.User == null || !HttpContext.User.Identity.IsAuthenticated)
             {
                 // Generate the nonce and give the user a claim for it
                 // BROKEN: Can't get StringDataFormat.Protect()
@@ -20,20 +20,20 @@ namespace AzureB2C.Controllers
                 //string protectedNonce = openIdConnectOptions.StringDataFormat.Protect(nonce);
                 //Response.Cookies.Append(".AspNet.OpenIdConnect.Nonce." + protectedNonce, "N", new CookieOptions { HttpOnly = true, Secure = Request.IsHttps });
 
-                Context.Response.Redirect(
+                HttpContext.Response.Redirect(
                     $"https://login.microsoftonline.com/{Startup.Tenant}/oauth2/v2.0/authorize" +
                     $"?p={Startup.SignInPolicyId}" +
                     $"&client_id={Startup.ClientId}" +
-                    "&response_type=id_token" +
+                    "&nonce = defaultNonce" +
+                    $"&redirect_uri={Startup.RedirectUrl}" +
                     "&scope=openid" +
-                    "&response_mode=form_post" +
-                    $"&redirect_uri={Startup.RedirectUrl}"
-                    // + "&nonce=" + nonce
+                    "&response_type=id_token" +
+                    "&prompt=login"
                 );
             }
             else
             {
-                Context.Response.Redirect("/");
+                HttpContext.Response.Redirect("/");
             }
         }
 
@@ -41,51 +41,53 @@ namespace AzureB2C.Controllers
         [HttpGet]
         public async Task LogOut()
         {
-            await Context.Authentication.SignOutAsync(OpenIdConnectAuthenticationDefaults.AuthenticationScheme);
-            await Context.Authentication.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.Authentication.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+            await HttpContext.Authentication.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         }
 
         // GET: /Account/Edit
         [HttpGet]
         public void Edit()
         {
-            if (Context.User != null && Context.User.Identity.IsAuthenticated)
+            if (HttpContext.User != null && HttpContext.User.Identity.IsAuthenticated)
             {
-                Context.Response.Redirect(
+                HttpContext.Response.Redirect(
                     $"https://login.microsoftonline.com/{Startup.Tenant}/oauth2/v2.0/authorize" +
                     $"?p={Startup.ProfilePolicyId}" +
                     $"&client_id={Startup.ClientId}" +
-                    "&response_type=id_token" +
+                    "&nonce = defaultNonce" +
+                    $"&redirect_uri={Startup.RedirectUrl}" +
                     "&scope=openid" +
-                    "&response_mode=form_post" +
-                    $"&redirect_uri={Startup.RedirectUrl}"
+                    "&response_type=id_token" +
+                    "&prompt=login"
                 );
             }
             else
             {
-                Context.Response.Redirect("/");
+                HttpContext.Response.Redirect("/");
             }
         }
 
         // GET: /Account/Signup
         [HttpGet]
-        public void Signup(OpenIdConnectAuthenticationOptions openIdConnectOptions)
+        public void Signup(OpenIdConnectOptions openIdConnectOptions)
         {
-            if (!Context.User.Identity.IsAuthenticated)
+            if (!HttpContext.User.Identity.IsAuthenticated)
             {
-                Context.Response.Redirect(
+                HttpContext.Response.Redirect(
                     $"https://login.microsoftonline.com/{Startup.Tenant}/oauth2/v2.0/authorize" +
-                    $"&client_id={Startup.SignUpPolicyId}" +
+                    $"?p={Startup.SignUpPolicyId}" +
                     $"&client_id={Startup.ClientId}" +
-                    "&response_type=id_token" +
+                    "&nonce = defaultNonce" +
+                    $"&redirect_uri={Startup.RedirectUrl}" +
                     "&scope=openid" +
-                    "&response_mode=form_post" +
-                    $"&redirect_uri={Startup.RedirectUrl}"
+                    "&response_type=id_token" +
+                    "&prompt=login"
                 );
             }
             else
             {
-                Context.Response.Redirect("/");
+                HttpContext.Response.Redirect("/");
             }
         }
     }

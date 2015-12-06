@@ -1,0 +1,43 @@
+{
+  "webroot": "wwwroot",
+  "version": "1.0.0-*",
+
+  "dependencies": {
+    "Microsoft.AspNet.Authentication.Cookies": "1.0.0-beta7",
+    "Microsoft.AspNet.Authentication.OpenIdConnect": "1.0.0-beta7",
+    "Microsoft.AspNet.Diagnostics": "1.0.0-beta7",
+    "Microsoft.AspNet.Http": "1.0.0-beta7",
+    "Microsoft.AspNet.Identity": "3.0.0-beta7",
+    "Microsoft.AspNet.Mvc": "6.0.0-beta7",
+    "Microsoft.AspNet.Server.IIS": "1.0.0-beta7",
+    "Microsoft.AspNet.StaticFiles": "1.0.0-beta7",
+    "Microsoft.AspNet.Tooling.Razor": "1.0.0-beta7",
+    "Microsoft.IdentityModel.Clients.ActiveDirectory": "3.5.207081303-alpha",
+    "Microsoft.IdentityModel.Protocols": "2.0.0-beta7-208241120",
+    "System.Runtime.Serialization.Json": "4.0.0-beta-23110"
+  },
+
+  "commands": {
+  },
+
+  "frameworks": {
+    "dnxcore50": { }
+  },
+
+  "exclude": [
+    "wwwroot"
+  ],
+
+  "publishExclude": [
+    "**.xproj",
+    "**.user",
+    "**.vspscc",
+    "**.bat",
+    "msdeploy.bat",
+    "bin",
+    "obj"
+  ],
+
+  "scripts": {
+  }
+}

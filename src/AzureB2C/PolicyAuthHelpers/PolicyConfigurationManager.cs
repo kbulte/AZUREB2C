@@ -18,7 +18,7 @@ namespace AzureB2C.Policies
     // while our current libraries are unable to support B2C
     // out of the box.  For the original source code (with comments)
     // visit https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet/blob/master/src/Microsoft.IdentityModel.Protocol.Extensions/Configuration/ConfigurationManager.cs
-    class PolicyConfigurationManager : Microsoft.IdentityModel.Protocols.IConfigurationManager<OpenIdConnectConfiguration>
+    class PolicyConfigurationManager : IConfigurationManager<OpenIdConnectConfiguration>
     {
         public static readonly TimeSpan DefaultAutomaticRefreshInterval = new TimeSpan(5, 0, 0, 0);
 
@@ -37,7 +37,7 @@ namespace AzureB2C.Policies
 
         private readonly SemaphoreSlim _refreshLock;
         private readonly string _metadataAddress;
-        private readonly IDocumentRetriever _docRetriever;
+        private readonly Microsoft.IdentityModel.Protocols.IDocumentRetriever _docRetriever;
         private readonly OpenIdConnectConfigurationRetriever _configRetriever;
         private Dictionary<string, OpenIdConnectConfiguration> _currentConfiguration;
 
@@ -79,7 +79,7 @@ namespace AzureB2C.Policies
             {
                 if (value < MinimumAutomaticRefreshInterval)
                 {
-                    throw new ArgumentOutOfRangeException("value", value, string.Format(CultureInfo.InvariantCulture, ErrorMessages.IDX10107, MinimumAutomaticRefreshInterval, value));
+                    throw new ArgumentOutOfRangeException("value", value.ToString());
                 }
                 _automaticRefreshInterval = value;
             }
@@ -92,7 +92,7 @@ namespace AzureB2C.Policies
             {
                 if (value < MinimumRefreshInterval)
                 {
-                    throw new ArgumentOutOfRangeException("value", value, string.Format(CultureInfo.InvariantCulture, ErrorMessages.IDX10106, MinimumRefreshInterval, value));
+                    throw new ArgumentOutOfRangeException("value", value.ToString());
                 }
                 _refreshInterval = value;
             }
@@ -170,7 +170,7 @@ namespace AzureB2C.Policies
                     try
                     {
                         // We're assuming the metadata address provided in the constructor does not contain qp's
-                        config = await OpenIdConnectConfigurationRetriever.GetAsync(String.Format(_metadataAddress + "?{0}={1}", policyParameter, policyId), _docRetriever, cancel);
+                        config = await OpenIdConnectConfigurationRetriever.GetAsync(string.Format(_metadataAddress + "?{0}={1}", policyParameter, policyId), _docRetriever, cancel);
                         _currentConfiguration[policyId] = config;
                         Contract.Assert(_currentConfiguration[policyId] != null);
                         _lastRefresh[policyId] = now;
@@ -185,7 +185,7 @@ namespace AzureB2C.Policies
 
                 if (config == null)
                 {
-                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, ErrorMessages.IDX10803, _metadataAddress ?? "null"), retrieveEx);
+                    throw new InvalidOperationException(_metadataAddress ?? "null");
                 }
 
                 return config;
