@@ -2,6 +2,7 @@
 using Microsoft.AspNet.Authentication.OpenIdConnect;
 using Microsoft.AspNet.Authentication.Cookies;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Http.Authentication;
 
 namespace AzureB2C.Controllers
 {
@@ -11,6 +12,7 @@ namespace AzureB2C.Controllers
         [HttpGet]
         public void LogIn(OpenIdConnectOptions openIdConnectOptions)
         {
+            //return new ChallengeResult(OpenIdConnectDefaults.AuthenticationScheme, new AuthenticationProperties { RedirectUri = "/" });
             if (HttpContext.User == null || !HttpContext.User.Identity.IsAuthenticated)
             {
                 // Generate the nonce and give the user a claim for it
@@ -28,7 +30,7 @@ namespace AzureB2C.Controllers
                     $"&redirect_uri={Startup.RedirectUrl}" +
                     "&scope=openid" +
                     "&response_type=id_token" +
-                    "&prompt=login"
+                    "&prompt=login", false
                 );
             }
             else
@@ -82,7 +84,7 @@ namespace AzureB2C.Controllers
                     $"&redirect_uri={Startup.RedirectUrl}" +
                     "&scope=openid" +
                     "&response_type=id_token" +
-                    "&prompt=login"
+                    "&prompt=login", false
                 );
             }
             else

@@ -9,11 +9,13 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNet.Authentication.Cookies;
+using Microsoft.Extensions.Logging;
 
 namespace AzureB2C
 {
     public class Startup
     {
+        private readonly IHostingEnvironment _env;
         public IConfiguration Configuration { get; set; }
         public static string Log = string.Empty;
         public static string ClientId = string.Empty;
@@ -28,26 +30,42 @@ namespace AzureB2C
 
         public Startup(IHostingEnvironment env)
         {
-            var configurationBuilder = new ConfigurationBuilder().AddEnvironmentVariables();
+            _env = env;
+
+            var configurationBuilder = new ConfigurationBuilder();
+
+            if (_env.IsDevelopment())
+            {
+                configurationBuilder.AddUserSecrets();
+            }
+
+            configurationBuilder.AddEnvironmentVariables();
+
             Configuration = configurationBuilder.Build();
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCaching();
+            services.AddSession();
             services.AddMvc();
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            Tenant = "******.onmicrosoft.com";
-            ClientId = "";
-            AppKey = "";
+            loggerFactory.AddConsole();
+            loggerFactory.AddDebug();
+
+            Tenant = Configuration["Authentication:AzureAd:AADInstance"];
+            ClientId = Configuration["Authentication:AzureAd:ClientId"];
+            AppKey = Configuration["Authentication:AzureAd:AppKey"];
             // These are the names I used in the portal for the policies
             SignUpPolicyId = "B2C_1_Sign_Up";
             SignInPolicyId = "B2C_1_Sign_In";
             ProfilePolicyId = "B2C_1_Edit";
             // Set to localhost at port 44301: Change to whereever you need AAD B2C to send them after auth, but url encode the string
-            RedirectUrl = "https%3a%2f%2flocalhost%3a5000%2f";
+            RedirectUrl = Configuration["Authentication:AzureAd:RedirectUrl"];
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -55,14 +73,21 @@ namespace AzureB2C
             else
             {
                 app.UseExceptionHandler("/Home/Error");
+                app.UseDeveloperExceptionPage();
+                //app.UseApplicationInsightsExceptionTelemetry();
             }
+
             app.UseStaticFiles();
+
             app.UseCookieAuthentication(options =>
                 {
                     options.AutomaticAuthenticate = true;
                     options.AutomaticChallenge = true;
+                    options.AuthenticationScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.CookieName = "oldowanClaims";
                 }
             );
+
             app.UseOpenIdConnectAuthentication(options =>
                 {
                     options.ClientId = ClientId;
@@ -70,45 +95,10 @@ namespace AzureB2C
                     options.ResponseType = "id_token";
                     options.ConfigurationManager = new PolicyConfigurationManager(options.Authority, new string[] { SignUpPolicyId, SignInPolicyId, ProfilePolicyId });
                     options.AutomaticAuthenticate = true;
-                    options.SignInScheme = "Cookies";
-
-                    // ***********************************************************************************
-                    // ****** TODO: Remove this when nonce can be produced in a normal ChallengeResponse *
-                    options.ProtocolValidator.RequireNonce = false;
-                    // ***********************************************************************************
-                    //options.Notification = new OpenIdConnectNotifications {
-                    //    RedirectToIdentityProvider = (context) =>
-                    //    {
-                    //        if (context.HttpContext.User.Identity.IsAuthenticated)
-                    //        {
-                    //            if (context.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
-                    //            {
-                    //                context.HandleResponse();
-                    //                context.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}&redirect_uri={RedirectUrl}");
-                    //            }
-                    //            else
-                    //            {
-                    //                context.HandleResponse();
-                    //                context.HttpContext.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=You are not authorized to access the requested resource."));
-                    //            }
-                    //        }
-                    //        return Task.FromResult(0);
-                    //    },
-                    //    AuthenticationFailed = (context) => {
-                    //        context.HandleResponse();
-                    //        if (context.ProtocolMessage.Error != null)
-                    //        {
-                    //            context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: " + System.Uri.EscapeUriString(context.ProtocolMessage.Error.ToString())));
-                    //        }
-                    //        else
-                    //        {
-                    //            context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: An unknown error occurred and the authentication failed. Please contact the IT Department."));
-                    //        }
-                    //        return Task.FromResult(0);
-                    //    },
-                    //};
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 }
             );
+
             app.UseMvcWithDefaultRoute();
         }
     }
