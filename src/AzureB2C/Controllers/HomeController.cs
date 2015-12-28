@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNet.Authorization;
 using Microsoft.AspNet.Mvc;
+using System.Linq;
 
 namespace AzureB2C.Controllers
 {
@@ -7,15 +8,17 @@ namespace AzureB2C.Controllers
     public class HomeController : Controller
     {
         public IActionResult Index()
+
         {
            
             ViewBag.Log = Startup.Log;
             return View();
         }
 
-        [Authorize]
+        //[Authorize]
         public IActionResult UserAuthorized()
         {
+            ViewBag.Claims = HttpContext.User.Claims;
             return View();
         }
 

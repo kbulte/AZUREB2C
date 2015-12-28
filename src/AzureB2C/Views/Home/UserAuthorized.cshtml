@@ -3,3 +3,10 @@
 }
 <h2>@ViewBag.Title</h2>
 <h3>This page is authorized for any signed in user who has been assigned to the application.</h3>
+
+<ul>
+    @foreach (var item in ViewBag.Claims)
+    {
+        <li>item.Value</li>
+    }
+</ul>

@@ -23,12 +23,13 @@ namespace AzureB2C.Controllers
                 //Response.Cookies.Append(".AspNet.OpenIdConnect.Nonce." + protectedNonce, "N", new CookieOptions { HttpOnly = true, Secure = Request.IsHttps });
 
                 HttpContext.Response.Redirect(
-                    $"https://login.microsoftonline.com/{Startup.Tenant}/oauth2/v2.0/authorize" +
+                    $"https://login.microsoftonline.com/oldowanb2c.onmicrosoft.com/oauth2/v2.0/authorize" +
                     $"?p={Startup.SignInPolicyId}" +
                     $"&client_id={Startup.ClientId}" +
                     "&nonce = defaultNonce" +
                     $"&redirect_uri={Startup.RedirectUrl}" +
                     "&scope=openid" +
+                    "&response_mode=form_post" +
                     "&response_type=id_token" +
                     "&prompt=login", false
                 );
@@ -68,6 +69,11 @@ namespace AzureB2C.Controllers
             {
                 HttpContext.Response.Redirect("/");
             }
+        }
+
+        public void Signinoidc()
+        {
+
         }
 
         // GET: /Account/Signup

@@ -10,6 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNet.Authentication.Cookies;
 using Microsoft.Extensions.Logging;
+using System.Linq;
+using Microsoft.AspNet.Http.Authentication;
+using Microsoft.AspNet.Http;
+using System.IdentityModel.Tokens;
+using System.Threading;
 
 namespace AzureB2C
 {
@@ -46,6 +51,7 @@ namespace AzureB2C
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddAuthentication(sharedOptions => sharedOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme);
             services.AddCaching();
             services.AddSession();
             services.AddMvc();
@@ -53,8 +59,8 @@ namespace AzureB2C
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
-            loggerFactory.AddDebug();
+            loggerFactory.AddConsole(LogLevel.Debug, true);
+            loggerFactory.AddDebug(LogLevel.Debug);
 
             Tenant = Configuration["Authentication:AzureAd:AADInstance"];
             ClientId = Configuration["Authentication:AzureAd:ClientId"];
@@ -65,6 +71,7 @@ namespace AzureB2C
             ProfilePolicyId = "B2C_1_Edit";
             // Set to localhost at port 44301: Change to whereever you need AAD B2C to send them after auth, but url encode the string
             RedirectUrl = Configuration["Authentication:AzureAd:RedirectUrl"];
+            //RedirectUrl = @"http%3A%2F%2Flocalhost%3A5000";
 
             if (env.IsDevelopment())
             {
@@ -74,7 +81,6 @@ namespace AzureB2C
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseDeveloperExceptionPage();
-                //app.UseApplicationInsightsExceptionTelemetry();
             }
 
             app.UseStaticFiles();
@@ -82,22 +88,75 @@ namespace AzureB2C
             app.UseCookieAuthentication(options =>
                 {
                     options.AutomaticAuthenticate = true;
-                    options.AutomaticChallenge = true;
-                    options.AuthenticationScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.CookieName = "oldowanClaims";
                 }
             );
+
+
 
             app.UseOpenIdConnectAuthentication(options =>
                 {
                     options.ClientId = ClientId;
-                    options.Authority = $"https://login.microsoftonline.com/{Tenant}/v2.0/.well-known/openid-configuration";
-                    options.ResponseType = "id_token";
-                    options.ConfigurationManager = new PolicyConfigurationManager(options.Authority, new string[] { SignUpPolicyId, SignInPolicyId, ProfilePolicyId });
+                    options.ClientSecret = AppKey;
+                    options.Authority = $"https://login.microsoftonline.com/oldowanb2c.onmicrosoft.com/oauth2/v2.0/authorize";
+                    options.ResponseType = OpenIdConnectResponseTypes.IdToken;
+                    options.GetClaimsFromUserInfoEndpoint = true;
+                    options.ConfigurationManager = new PolicyConfigurationManager("https://login.microsoftonline.com/oldowanb2c.onmicrosoft.com//.well-known/openid-configuration", new string[] { SignUpPolicyId, SignInPolicyId, ProfilePolicyId });
                     options.AutomaticAuthenticate = true;
-                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                }
-            );
+                    options.CallbackPath = new PathString("/Home/Index");
+                    options.ProtocolValidator.RequireNonce = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        NameClaimType = "name",
+                    };
+                    options.Events = new OpenIdConnectEvents
+                    {
+                        OnRedirectToAuthenticationEndpoint = async (redirectContext) =>
+                        {
+                            if (redirectContext.HttpContext.User.Identity.IsAuthenticated)
+                            {
+                                //if (redirectContext.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
+                                //{
+                                //    redirectContext.HandleResponse();
+                                //    redirectContext.HttpContext.Response.Redirect($"https://login.microsoftonline.com/{Tenant}/oauth2/v2.0/logout?p={SignInPolicyId}&redirect_uri={RedirectUrl}");
+                                //}
+                                //else
+                                //{
+                                //    redirectContext.HandleResponse();
+                                //    redirectContext.HttpContext.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=You are not authorized to access the requested resource."));
+                                //}
+
+                                PolicyConfigurationManager mgr = redirectContext.Options.ConfigurationManager as PolicyConfigurationManager;
+                                if (redirectContext.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
+                                {
+                                    OpenIdConnectConfiguration config = await mgr.GetConfigurationByPolicyAsync(CancellationToken.None, SignUpPolicyId);
+                                    redirectContext.ProtocolMessage.IssuerAddress = config.EndSessionEndpoint;
+                                }
+                                else
+                                {
+                                    OpenIdConnectConfiguration config = await mgr.GetConfigurationByPolicyAsync(CancellationToken.None, SignInPolicyId);
+                                    redirectContext.ProtocolMessage.IssuerAddress = config.AuthorizationEndpoint;
+                                }
+                            }
+
+                           // return Task.FromResult(0);
+                        },
+
+                        OnAuthenticationFailed = (context) =>
+                        {
+                            context.HandleResponse();
+                            if (context.ProtocolMessage.Error != null)
+                            {
+                                context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: " + System.Uri.EscapeUriString(context.ProtocolMessage.Error.ToString())));
+                            }
+                            else
+                            {
+                                context.Response.Redirect(Uri.EscapeUriString("/Home/Error?message=Error: An unknown error occurred and the authentication failed. Please contact the IT Department."));
+                            }
+                            return Task.FromResult(0);
+                        }
+                    };
+                });
+
 
             app.UseMvcWithDefaultRoute();
         }
